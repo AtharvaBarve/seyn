@@ -31,19 +31,17 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Get local songs from cache folder
 ipcMain.handle('get-local-songs', () => {
   const cachePath = path.join(__dirname, 'cache');
   if (!fs.existsSync(cachePath)) return [];
   return fs.readdirSync(cachePath)
     .filter(file => file.endsWith('.mp3') || file.endsWith('.wav'))
     .map(file => ({
-      title: file,
+      title: file.replace(/\.mp3$/, ''),
       path: path.join(cachePath, file),
     }));
 });
 
-// Allow browsing a music folder
 ipcMain.handle('browse-music-folder', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
   if (result.canceled) return [];
@@ -53,12 +51,11 @@ ipcMain.handle('browse-music-folder', async () => {
   return files
     .filter(file => file.endsWith('.mp3') || file.endsWith('.wav'))
     .map(file => ({
-      title: file,
+      title: file.replace(/\.mp3$/, ''),
       path: path.join(dirPath, file),
     }));
 });
 
-// YouTube search
 ipcMain.handle('search-youtube', async (_, query) => {
   const ytSearch = require('yt-search');
   const result = await ytSearch(query);
@@ -67,22 +64,20 @@ ipcMain.handle('search-youtube', async (_, query) => {
     duration: video.timestamp,
     description: video.description,
     videoId: video.videoId,
+    thumbnail: video.thumbnail,
   }));
 });
 
-// Download audio from YouTube
 ipcMain.handle('download-audio', async (_, video) => {
   const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
   const cachePath = path.join(__dirname, 'cache');
   if (!fs.existsSync(cachePath)) fs.mkdirSync(cachePath);
 
-  const safeTitle = video.title.replace(/[^a-z0-9 \-_]/gi, '').slice(0, 50); // Clean + safe
-  const filename = `${safeTitle}-${video.videoId}.mp3`;
+  const safeTitle = video.title.replace(/[^a-zA-Z0-9 \-_]/g, '').slice(0, 50).trim();
+  const filename = `${safeTitle}.mp3`;
   const filepath = path.join(cachePath, filename);
 
-  if (fs.existsSync(filepath)) {
-    return filepath;
-  }
+  if (fs.existsSync(filepath)) return filepath;
 
   return new Promise((resolve, reject) => {
     const stream = ytdl(videoUrl, { quality: 'highestaudio' });

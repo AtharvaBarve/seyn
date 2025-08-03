@@ -1,167 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ViMusic PC</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    body {
-      background-color: #121212;
-      color: white;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .header {
-      padding: 1rem;
-      background: #1f1f1f;
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 0.5rem;
-      font-size: 1rem;
-      border-radius: 4px;
-      border: none;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      background: #3f51b5;
-      border: none;
-      color: white;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .content {
-      padding: 1rem;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    li {
-      padding: 0.5rem;
-      cursor: pointer;
-      border-bottom: 1px solid #333;
-    }
-    li:hover {
-      background: #333;
-    }
-    .footer {
+    /* Sticky player bar */
+    #nowPlaying {
       position: fixed;
       bottom: 0;
       left: 0;
-      right: 0;
-      background: #1f1f1f;
-      padding: 1rem;
+      width: 100%;
+      background: #181818;
+      color: white;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 15px;
+      padding: 10px 20px;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.3);
+    }
+
+    #nowThumb {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    #nowInfo {
+      flex: 1;
+    }
+
+    audio {
+      width: 300px;
+    }
+
+    button {
+      margin-top: 5px;
+      padding: 6px 12px;
+      background: #1db954;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1ed760;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <button onclick="browseFolder()">📁 Browse Music Folder</button>
-    <input id="search-input" type="text" placeholder="Search YouTube..." />
-    <button onclick="searchYouTube()">Search</button>
+  <div class="app">
+    <header>
+      <h1>🎵 ViMusic PC</h1>
+    </header>
+
+    <section class="search-section">
+      <input type="text" id="searchInput" placeholder="Search YouTube songs..." />
+      <button id="searchBtn">Search</button>
+    </section>
+
+    <section class="song-section">
+      <h2>📁 Local Songs</h2>
+      <div id="localSongs" class="song-list"></div>
+    </section>
+
+    <section class="search-results">
+      <h2>🔍 YouTube Results</h2>
+      <div id="youtubeResults" class="song-list"></div>
+    </section>
   </div>
 
-  <div class="content">
-    <h3>Search Results:</h3>
-    <ul id="search-results"></ul>
-
-    <h3>Local Songs:</h3>
-    <ul id="song-list"></ul>
+  <!-- Sticky player bar -->
+  <div id="nowPlaying">
+    <img id="nowThumb" src="" alt="Thumbnail" />
+    <div id="nowInfo">
+      <div id="nowTitle">Not playing</div>
+    </div>
+    <audio id="player" controls></audio>
   </div>
 
-  <div class="footer">
-    <div id="now-playing">🎵 Nothing playing</div>
-    <audio id="audio-player" controls></audio>
-  </div>
-
-  <script>
-    const audioPlayer = document.getElementById('audio-player');
-    const nowPlaying = document.getElementById('now-playing');
-    const searchInput = document.getElementById('search-input');
-    const searchResults = document.getElementById('search-results');
-    const songList = document.getElementById('song-list');
-
-    // Play audio file
-    function playSong(filepath) {
-      audioPlayer.src = filepath;
-      audioPlayer.play();
-      nowPlaying.textContent = `🎵 Now Playing: ${filepath.split(/[\\/]/).pop()}`;
-    }
-
-    // Load songs from cache
-    async function loadCachedSongs() {
-      const songs = await window.electronAPI.getLocalSongs();
-      songList.innerHTML = '';
-      songs.forEach(song => {
-        const li = document.createElement('li');
-        li.textContent = song.title;
-        li.onclick = () => playSong(song.path);
-        songList.appendChild(li);
-      });
-    }
-
-    // Browse manually-selected folder
-    async function browseFolder() {
-      const folderSongs = await window.electronAPI.browseMusicFolder();
-      if (!folderSongs) return;
-      songList.innerHTML = '';
-      folderSongs.forEach(song => {
-        const li = document.createElement('li');
-        li.textContent = song.title;
-        li.onclick = () => playSong(song.path);
-        songList.appendChild(li);
-      });
-    }
-
-    // Search YouTube
-    async function searchYouTube() {
-      const query = searchInput.value.trim();
-      if (!query) return;
-
-      const results = await window.electronAPI.searchYouTube(query);
-      searchResults.innerHTML = '';
-
-      if (results.length === 0) {
-        searchResults.innerHTML = '<li>No results found.</li>';
-        return;
-      }
-
-      results.forEach(video => {
-        const li = document.createElement('li');
-        li.textContent = `${video.title} (${video.duration})`;
-        li.title = video.description;
-        li.onclick = () => downloadAndPlay(video);
-        searchResults.appendChild(li);
-      });
-    }
-
-    // Download from YouTube and play
-    async function downloadAndPlay(video) {
-      nowPlaying.textContent = `⬇️ Downloading: ${video.title}`;
-      const filepath = await window.electronAPI.downloadAudio(video);
-      if (filepath) {
-        playSong(filepath);
-        loadCachedSongs(); // refresh local list
-      } else {
-        alert('Failed to download audio.');
-      }
-    }
-
-    // Auto-load cache folder on startup
-    window.onload = () => {
-      loadCachedSongs();
-    };
-  </script>
+  <script src="renderer.js"></script>
 </body>
 </html>
-
-
