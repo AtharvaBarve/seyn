@@ -35,25 +35,15 @@ ipcMain.handle('get-local-songs', () => {
   const cachePath = path.join(__dirname, 'cache');
   if (!fs.existsSync(cachePath)) return [];
   return fs.readdirSync(cachePath)
-    .filter(file => file.endsWith('.mp3') || file.endsWith('.wav'))
-    .map(file => ({
-      title: file.replace(/\.mp3$/, ''),
-      path: path.join(cachePath, file),
-    }));
-});
-
-ipcMain.handle('browse-music-folder', async () => {
-  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-  if (result.canceled) return [];
-
-  const dirPath = result.filePaths[0];
-  const files = fs.readdirSync(dirPath);
-  return files
-    .filter(file => file.endsWith('.mp3') || file.endsWith('.wav'))
-    .map(file => ({
-      title: file.replace(/\.mp3$/, ''),
-      path: path.join(dirPath, file),
-    }));
+    .filter(file => file.endsWith('.mp3'))
+    .map(file => {
+      const thumbPath = path.join(cachePath, file.replace(/\.mp3$/, '.jpg'));
+      return {
+        title: file.replace(/\.mp3$/, ''),
+        path: path.join(cachePath, file),
+        thumbnail: fs.existsSync(thumbPath) ? `file://${thumbPath}` : '',
+      };
+    });
 });
 
 ipcMain.handle('search-youtube', async (_, query) => {
@@ -62,7 +52,6 @@ ipcMain.handle('search-youtube', async (_, query) => {
   return result.videos.slice(0, 10).map(video => ({
     title: video.title,
     duration: video.timestamp,
-    description: video.description,
     videoId: video.videoId,
     thumbnail: video.thumbnail,
   }));
@@ -85,11 +74,24 @@ ipcMain.handle('download-audio', async (_, video) => {
     ffmpeg(stream)
       .audioBitrate(128)
       .format('mp3')
-      .on('end', () => resolve(filepath))
+      .on('end', async () => {
+        // Download thumbnail too
+        if (video.thumbnail) {
+          const thumbPath = path.join(cachePath, filename.replace(/\.mp3$/, '.jpg'));
+          const https = require('https');
+          const file = fs.createWriteStream(thumbPath);
+          https.get(video.thumbnail, res => res.pipe(file));
+        }
+        resolve(filepath);
+      })
       .on('error', (err) => {
         console.error('[FFmpeg Error]', err);
         reject(null);
       })
       .save(filepath);
-  }).catch(() => null);
+  }).catch(err => {
+    console.error('[Download Failure]', err);
+    return null;
+  });
 });
+

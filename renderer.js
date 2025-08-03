@@ -6,19 +6,36 @@ const audioPlayer = document.getElementById('player');
 const nowTitle = document.getElementById('nowTitle');
 const nowThumb = document.getElementById('nowThumb');
 
-// 🔁 Load Local Songs
+// Load Local Songs
 async function loadLocalSongs() {
   const songs = await window.electronAPI.getLocalSongs();
   localSongsContainer.innerHTML = '';
   songs.forEach(song => {
-    const btn = document.createElement('button');
-    btn.textContent = song.title.replace(/\.mp3$/, '');
-    btn.onclick = () => playSong(song.path, song.title);
-    localSongsContainer.appendChild(btn);
+    const div = document.createElement('div');
+    div.classList.add('song-item');
+
+    const img = document.createElement('img');
+    img.className = 'thumb';
+    img.src = song.thumbnail || 'https://via.placeholder.com/80x60?text=♫';
+
+    const title = document.createElement('div');
+    title.className = 'song-title';
+    title.textContent = song.title;
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'download-btn';
+    playBtn.textContent = 'Play';
+    playBtn.onclick = () => playSong(song.path, song.title, song.thumbnail);
+
+    div.appendChild(img);
+    div.appendChild(title);
+    div.appendChild(playBtn);
+
+    localSongsContainer.appendChild(div);
   });
 }
 
-// 🔍 YouTube Search
+// Search YouTube
 searchBtn.onclick = async () => {
   const query = searchInput.value.trim();
   if (!query) return;
@@ -27,35 +44,48 @@ searchBtn.onclick = async () => {
   youtubeResultsContainer.innerHTML = '';
   results.forEach(video => {
     const div = document.createElement('div');
-    div.classList.add('yt-result');
+    div.classList.add('song-item');
+
+    const img = document.createElement('img');
+    img.className = 'thumb';
+    img.src = video.thumbnail || 'https://via.placeholder.com/80x60?text=YT';
 
     const title = document.createElement('div');
+    title.className = 'song-title';
     title.textContent = video.title;
-    title.className = 'yt-title';
 
     const playBtn = document.createElement('button');
+    playBtn.className = 'download-btn';
     playBtn.textContent = 'Play';
     playBtn.onclick = async () => {
-      const path = await window.electronAPI.downloadAndPlay(video);
+      nowTitle.textContent = `Downloading "${video.title}"...`;
+      nowThumb.src = 'https://via.placeholder.com/40x40?text=...';
+
+      const path = await window.electronAPI.downloadAudio(video);
       if (path) {
-        playSong(path, video.title, `https://img.youtube.com/vi/${video.videoId}/default.jpg`);
-        loadLocalSongs(); // Refresh local list
+        playSong(path, video.title, video.thumbnail);
+        loadLocalSongs(); // refresh list
+      } else {
+        nowTitle.textContent = 'Download failed ❌';
+        nowThumb.src = '';
       }
     };
 
+    div.appendChild(img);
     div.appendChild(title);
     div.appendChild(playBtn);
+
     youtubeResultsContainer.appendChild(div);
   });
 };
 
-// 🎵 Play Song (Update Player + UI)
+// Play Song
 function playSong(path, title, thumbnail = '') {
   audioPlayer.src = path;
   audioPlayer.play();
-  if (nowTitle) nowTitle.textContent = title.replace(/\.mp3$/, '');
-  if (nowThumb) nowThumb.src = thumbnail || '';
+  nowTitle.textContent = title.replace(/\.mp3$/, '');
+  nowThumb.src = thumbnail || 'https://via.placeholder.com/40x40?text=♫';
 }
 
-// 📦 On load
+// On Load
 loadLocalSongs();

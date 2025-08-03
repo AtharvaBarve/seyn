@@ -2,86 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ViMusic PC</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* Sticky player bar */
-    #nowPlaying {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #181818;
-      color: white;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      padding: 10px 20px;
-      box-shadow: 0 -2px 5px rgba(0,0,0,0.3);
-    }
-
-    #nowThumb {
-      width: 50px;
-      height: 50px;
-      object-fit: cover;
-      border-radius: 6px;
-    }
-
-    #nowInfo {
-      flex: 1;
-    }
-
-    audio {
-      width: 300px;
-    }
-
-    button {
-      margin-top: 5px;
-      padding: 6px 12px;
-      background: #1db954;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1ed760;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Music Player</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div class="app">
     <header>
-      <h1>🎵 ViMusic PC</h1>
+      <h1>🎵 Local & YouTube Music Player</h1>
     </header>
 
-    <section class="search-section">
-      <input type="text" id="searchInput" placeholder="Search YouTube songs..." />
+    <div class="search-section">
+      <input type="text" id="searchInput" placeholder="Search YouTube...">
       <button id="searchBtn">Search</button>
-    </section>
-
-    <section class="song-section">
-      <h2>📁 Local Songs</h2>
-      <div id="localSongs" class="song-list"></div>
-    </section>
-
-    <section class="search-results">
-      <h2>🔍 YouTube Results</h2>
-      <div id="youtubeResults" class="song-list"></div>
-    </section>
-  </div>
-
-  <!-- Sticky player bar -->
-  <div id="nowPlaying">
-    <img id="nowThumb" src="" alt="Thumbnail" />
-    <div id="nowInfo">
-      <div id="nowTitle">Not playing</div>
     </div>
-    <audio id="player" controls></audio>
+
+    <div class="song-section">
+      <h2>🎧 Local Songs</h2>
+      <div id="localSongs" class="song-list"></div>
+    </div>
+
+    <div class="search-results">
+      <h2>📡 YouTube Results</h2>
+      <div id="youtubeResults" class="song-list"></div>
+    </div>
   </div>
 
+  <div id="nowPlaying">
+    <img id="nowThumb" src="" alt="thumb" />
+    <div id="nowInfo">
+      <div id="nowTitle">Nothing playing</div>
+    </div>
+  </div>
+
+  <audio id="player" controls></audio>
   <script src="renderer.js"></script>
 </body>
 </html>
+
