@@ -1,85 +1,103 @@
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
-const localSongsContainer = document.getElementById('localSongs');
+const songListContainer = document.getElementById('songList');
 const youtubeResultsContainer = document.getElementById('youtubeResults');
 const audioPlayer = document.getElementById('player');
 const nowTitle = document.getElementById('nowTitle');
 const nowThumb = document.getElementById('nowThumb');
 
-// Load Local Songs
+// 🎧 Load Local Songs
 async function loadLocalSongs() {
   const songs = await window.electronAPI.getLocalSongs();
-  localSongsContainer.innerHTML = '';
+  songListContainer.innerHTML = '';
   songs.forEach(song => {
-    const div = document.createElement('div');
-    div.classList.add('song-item');
-
-    const img = document.createElement('img');
-    img.className = 'thumb';
-    img.src = song.thumbnail || 'https://via.placeholder.com/80x60?text=♫';
-
-    const title = document.createElement('div');
-    title.className = 'song-title';
-    title.textContent = song.title;
-
-    const playBtn = document.createElement('button');
-    playBtn.className = 'download-btn';
-    playBtn.textContent = 'Play';
-    playBtn.onclick = () => playSong(song.path, song.title, song.thumbnail);
-
-    div.appendChild(img);
-    div.appendChild(title);
-    div.appendChild(playBtn);
-
-    localSongsContainer.appendChild(div);
+    renderSongCard({
+      title: song.title,
+      path: song.path,
+      thumbnail: song.thumbnail || 'https://via.placeholder.com/80x60?text=♫',
+      source: 'local',
+      container: songListContainer,
+    });
   });
 }
 
-// Search YouTube
+// 📡 Search YouTube
 searchBtn.onclick = async () => {
   const query = searchInput.value.trim();
   if (!query) return;
 
-  const results = await window.electronAPI.searchYouTube(query);
-  youtubeResultsContainer.innerHTML = '';
-  results.forEach(video => {
-    const div = document.createElement('div');
-    div.classList.add('song-item');
+  youtubeResultsContainer.innerHTML = `<div>Searching YouTube for "${query}"...</div>`;
 
-    const img = document.createElement('img');
-    img.className = 'thumb';
-    img.src = video.thumbnail || 'https://via.placeholder.com/80x60?text=YT';
+  try {
+    const results = await window.electronAPI.searchYouTube(query);
+    youtubeResultsContainer.innerHTML = ''; // clear old ones
 
-    const title = document.createElement('div');
-    title.className = 'song-title';
-    title.textContent = video.title;
+    results.forEach(video => {
+      renderSongCard({
+        title: video.title,
+        videoId: video.videoId,
+        thumbnail: video.thumbnail || 'https://via.placeholder.com/80x60?text=YT',
+        source: 'youtube',
+        container: youtubeResultsContainer,
+      });
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    youtubeResultsContainer.innerHTML = `<div style="color:red;">Search failed ❌</div>`;
+  }
+};
 
-    const playBtn = document.createElement('button');
-    playBtn.className = 'download-btn';
-    playBtn.textContent = 'Play';
-    playBtn.onclick = async () => {
-      nowTitle.textContent = `Downloading "${video.title}"...`;
+// 🧱 Render a Song Card (Local or YouTube)
+function renderSongCard({ title, path, videoId, thumbnail, source, container }) {
+  const div = document.createElement('div');
+  div.classList.add('song-item');
+
+  const img = document.createElement('img');
+  img.className = 'thumb';
+  img.src = thumbnail;
+
+  const info = document.createElement('div');
+  info.className = 'song-info';
+
+  const titleDiv = document.createElement('div');
+titleDiv.className = 'song-title';
+titleDiv.textContent = `${source === 'local' ? '🎧' : '📡'} ${title}`;
+titleDiv.title = title;
+info.appendChild(titleDiv);
+
+
+
+  const playBtn = document.createElement('button');
+  playBtn.className = 'download-btn';
+  playBtn.textContent = 'Play';
+
+  playBtn.onclick = async () => {
+    if (source === 'local') {
+      playSong(path, title, thumbnail);
+    } else {
+      nowTitle.textContent = `Downloading "${title}"...`;
       nowThumb.src = 'https://via.placeholder.com/40x40?text=...';
 
-      const path = await window.electronAPI.downloadAudio(video);
-      if (path) {
-        playSong(path, video.title, video.thumbnail);
-        loadLocalSongs(); // refresh list
+      const filePath = await window.electronAPI.downloadAudio({ title, videoId, thumbnail });
+      if (filePath) {
+        playSong(filePath, title, thumbnail);
+        loadLocalSongs(); // refresh local
+        youtubeResultsContainer.innerHTML = ''; // clear YouTube list
       } else {
         nowTitle.textContent = 'Download failed ❌';
         nowThumb.src = '';
       }
-    };
+    }
+  };
 
-    div.appendChild(img);
-    div.appendChild(title);
-    div.appendChild(playBtn);
+  info.appendChild(titleDiv);
+  div.appendChild(img);
+  div.appendChild(info);
+  div.appendChild(playBtn);
+  container.appendChild(div);
+}
 
-    youtubeResultsContainer.appendChild(div);
-  });
-};
-
-// Play Song
+// 🔊 Play Song
 function playSong(path, title, thumbnail = '') {
   audioPlayer.src = path;
   audioPlayer.play();

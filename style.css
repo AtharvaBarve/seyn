@@ -1,3 +1,4 @@
+/* Base Reset */
 body {
   margin: 0;
   font-family: sans-serif;
@@ -8,17 +9,20 @@ body {
   height: 100vh;
 }
 
+/* App Container */
 .app {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
 }
 
+/* Header */
 header {
   text-align: center;
   margin-bottom: 20px;
 }
 
+/* Search */
 .search-section {
   display: flex;
   gap: 10px;
@@ -33,46 +37,103 @@ header {
 
 .search-section button {
   padding: 8px 16px;
-}
-
-.song-section, .search-results {
-  margin-bottom: 30px;
-}
-
-.song-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.song-item {
-  background: #222;
-  padding: 10px;
-  border-radius: 8px;
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.song-title {
-  font-size: 14px;
-  text-align: center;
-}
-
-.download-btn {
-  padding: 5px 10px;
+  font-size: 16px;
   cursor: pointer;
 }
 
-.thumb {
-  width: 80px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
+/* Song Sections */
+.song-section,
+.search-results {
+  margin-bottom: 30px;
 }
 
+/* Grid Layout */
+.song-list,
+.song-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 15px;
+  margin-bottom: 100px;
+}
+
+/* Song Card */
+.song-item {
+  background: #222;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
+
+.song-item:hover {
+  background: #2a2a2a;
+}
+
+/* Thumbnail */
+.thumb {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Info Section */
+.song-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Title (Fixed) */
+.song-title {
+  width: 100%;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: center;
+  cursor: default;
+  position: relative;
+}
+
+/* Tooltip on Hover */
+.song-title:hover::after {
+  content: attr(title);
+  position: absolute;
+  background: #333;
+  padding: 6px 10px;
+  white-space: normal;
+  color: #fff;
+  top: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  border: 1px solid #555;
+  border-radius: 6px;
+  max-width: 280px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+}
+
+/* Button */
+.download-btn,
+.play-btn {
+  margin-top: 10px;
+  background-color: #1db954;
+  color: white;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Now Playing Section */
 #nowPlaying {
   display: flex;
   align-items: center;
