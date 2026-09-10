@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { searchYoutube, downloadAudio, CACHE_DIR } = require('./src/main/services/youtubeService');
+const { searchYoutube, getLyricsFromVideo, downloadAudio, CACHE_DIR } = require('./src/main/services/youtubeService');
 const { scanMusicFolder } = require('./src/main/services/libraryService');
 
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'vitune-settings.json');
@@ -81,6 +81,10 @@ ipcMain.handle('get-local-songs', () => {
 
 ipcMain.handle('search-youtube', async (_, query, source = 'youtube-music') => {
   return searchYoutube(query, source);
+});
+
+ipcMain.handle('get-lyrics', async (_, videoId, source = 'youtube-music') => {
+  return getLyricsFromVideo(videoId, source);
 });
 
 ipcMain.handle('download-audio', async (_, video) => {

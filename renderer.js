@@ -1,27 +1,28 @@
 const state = {
-  currentView: 'liked',
+  currentView: 'home',
   activeSource: 'youtube-music',
   songs: [],
   videos: [],
-  queue: [],
   liked: [],
+  history: [],
+  similarSongs: [],
   currentSong: null,
   playing: false,
   volume: 0.8,
+  lyricsRequestToken: null,
 };
 
 const els = {
   searchInput: document.getElementById('searchInput'),
   searchBtn: document.getElementById('searchBtn'),
-  browseBtn: document.getElementById('browseBtn'),
   songsList: document.getElementById('songsList'),
   videosList: document.getElementById('videosList'),
   likedList: document.getElementById('likedList'),
-  queueList: document.getElementById('queueList'),
+  homeRecommendations: document.getElementById('homeRecommendations'),
+  historyList: document.getElementById('historyList'),
   searchList: document.getElementById('searchList'),
   songsCount: document.getElementById('songsCount'),
   videosCount: document.getElementById('videosCount'),
-  queueCount: document.getElementById('queueCount'),
   searchStatus: document.getElementById('searchStatus'),
   detailArt: document.getElementById('detailArt'),
   detailTitle: document.getElementById('detailTitle'),
@@ -58,21 +59,18 @@ function getSearchSourceForView(viewName) {
   return 'youtube-music';
 }
 
-function syncSourceButtons() {
-  document.querySelectorAll('.source-btn').forEach((button) => {
-    button.classList.toggle('active', button.dataset.source === state.activeSource);
-  });
+function getCurrentSection() {
+  return document.querySelector('.nav-item.active')?.dataset.view || state.currentView || 'songs';
 }
 
 function setView(name) {
   state.currentView = name;
-  if (name === 'songs' || name === 'liked' || name === 'search') {
+  if (name === 'songs' || name === 'liked') {
     state.activeSource = 'youtube-music';
   }
   if (name === 'videos') {
     state.activeSource = 'youtube';
   }
-  syncSourceButtons();
   document.querySelectorAll('.nav-item').forEach((button) => {
     button.classList.toggle('active', button.dataset.view === name);
   });
@@ -90,8 +88,7 @@ function iconSvg(name) {
     heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7-4.35-9.22-8.03C1.3 9.78 3.16 5.5 7.2 5.5c2.12 0 3.53 1.04 4.8 2.38 1.27-1.34 2.68-2.38 4.8-2.38 4.04 0 5.9 4.28 4.42 6.97C19 16.15 12 20.5 12 20.5Z" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     volume: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h3l5-4v12l-5-4H5v-4Zm10 2.5c1.2-1.2 1.2-3.2 0-4.4M17.5 7c2.4 2 2.4 8 0 10" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h3l5-4v12l-5-4H5v-4Zm11.5 3 3-3m0 3-3-3" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 8.5c1.1.9 1.7 2.1 1.7 3.5s-.6 2.6-1.7 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
-    search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-    queue: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h11M5 12h11M5 17h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17.5" cy="17" r="2.5" fill="currentColor"/></svg>'
+    search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
   };
   return icons[name] || '';
 }
@@ -103,21 +100,35 @@ function toUrl(value) {
   return `file://${value}`;
 }
 
+function songKey(song) {
+  return String(song?.id || song?.videoId || `${song?.title || ''}::${song?.artist || ''}`);
+}
+
+function dedupeSongs(songs, excludedKeys = new Set()) {
+  const seen = new Set(excludedKeys);
+  const unique = [];
+  for (const song of songs || []) {
+    const key = songKey(song);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(song);
+  }
+  return unique;
+}
+
 function renderSongRow(song, index, targetList) {
   const row = document.createElement('div');
   row.className = 'song-row';
-  const isLiked = state.liked.includes(String(song.id || song.videoId || song.title));
+  const isLiked = state.liked.includes(songKey(song));
   row.innerHTML = `
     <div class="song-index">${index + 1}</div>
     <img class="song-art" src="${song.thumbnail || 'https://placehold.co/60x60/1f1f1f/fff?text=♫'}" alt="${song.title}" />
     <div class="song-main">
       <div class="song-title">${song.title}</div>
-      <div class="song-sub">${song.source === 'local' ? 'Local library' : song.source === 'youtube-music' ? 'YouTube Music' : song.source === 'youtube' ? 'YouTube' : 'Audio track'}</div>
     </div>
     <div class="song-artist">${song.artist || 'Unknown artist'}</div>
     <div class="song-duration">${typeof song.duration === 'string' ? song.duration : formatDuration(song.duration)}</div>
     <button class="song-action ${isLiked ? 'liked' : ''}" data-like="${String(song.id || song.videoId || song.title)}" aria-label="Like">${iconSvg('heart')}</button>
-    <button class="song-action more" aria-label="More">${iconSvg('queue')}</button>
   `;
 
   row.addEventListener('click', (event) => {
@@ -130,11 +141,6 @@ function renderSongRow(song, index, targetList) {
     event.stopPropagation();
     toggleLike(song);
     renderAll();
-  });
-
-  row.querySelector('.more').addEventListener('click', (event) => {
-    event.stopPropagation();
-    queueSong(song);
   });
 
   targetList.appendChild(row);
@@ -157,25 +163,69 @@ function renderVideos() {
 
 function renderLiked() {
   const liked = state.liked
-    .map((id) => [...state.songs, ...state.videos].find((song) => song.id === id))
+    .map((id) => [...state.songs, ...state.videos, ...state.similarSongs].find((song) => songKey(song) === id))
     .filter(Boolean);
-  renderList(els.likedList, liked);
-}
-
-function renderQueue() {
-  renderList(els.queueList, state.queue);
-  els.queueCount.textContent = `${state.queue.length} tracks`;
+  renderList(els.likedList, dedupeSongs(liked));
 }
 
 function renderSearchResults(results) {
   renderList(els.searchList, results);
 }
 
+function shuffle(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function getRecommendedSongs() {
+  if (state.similarSongs.length > 0) {
+    return dedupeSongs(state.similarSongs, state.currentSong ? new Set([songKey(state.currentSong)]) : undefined).slice(0, 8);
+  }
+
+  const pool = dedupeSongs([...state.songs, ...state.videos, ...state.history]);
+  if (state.history.length > 0) {
+    const artists = new Set(state.history.map((song) => String(song.artist || '').toLowerCase()));
+    const artistMatches = dedupeSongs(pool.filter((song) => artists.has(String(song.artist || '').toLowerCase())));
+    if (artistMatches.length > 0) {
+      return artistMatches.slice(0, 8);
+    }
+  }
+
+  if (pool.length > 0) {
+    return shuffle(pool).slice(0, 8);
+  }
+
+  return [];
+}
+
+function renderHomeRecommendations() {
+  const recommendations = getRecommendedSongs();
+  renderList(els.homeRecommendations, recommendations);
+}
+
+function renderHistory() {
+  renderList(els.historyList, state.history);
+}
+
 function renderAll() {
   renderSongs();
   renderVideos();
   renderLiked();
-  renderQueue();
+  renderHistory();
+  renderHomeRecommendations();
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function updateDetail(song) {
@@ -183,15 +233,18 @@ function updateDetail(song) {
     els.detailArt.src = 'https://placehold.co/360x360/1f1f1f/fff?text=Album';
     els.detailTitle.textContent = 'Nothing playing';
     els.detailArtist.textContent = 'No artist';
-    els.lyricsContent.textContent = 'No lyrics available';
+    els.lyricsContent.innerHTML = 'No lyrics available';
     return;
   }
 
   els.detailArt.src = song.thumbnail || 'https://placehold.co/360x360/1f1f1f/fff?text=Album';
   els.detailTitle.textContent = song.title || 'Unknown title';
   els.detailArtist.textContent = song.artist || 'Unknown artist';
-  const lyricText = (song.lyrics && song.lyrics.trim()) || `\n${song.title}\n\n${song.artist}\n\n${song.title} is playing right now.`;
-  els.lyricsContent.textContent = lyricText;
+
+  const fallbackLyrics = song.source === 'youtube-music' ? 'Loading lyrics...' : 'No lyrics available';
+  const lyricText = (song.lyrics && song.lyrics.trim()) || fallbackLyrics;
+  els.lyricsContent.innerHTML = escapeHtml(lyricText).replace(/\n/g, '<br>');
+  els.lyricsContent.scrollTop = 0;
 }
 
 function updateNowPlaying(song) {
@@ -210,38 +263,40 @@ function updateNowPlaying(song) {
   els.likeBtn.classList.toggle('active', state.liked.includes(key));
 }
 
-function queueSong(song) {
-  if (!song) return;
-  const key = String(song.id || song.videoId || song.title);
-  const exists = state.queue.find((entry) => entry.id === key);
-  if (!exists) {
-    state.queue.push({ ...song, id: key });
-  }
-  renderQueue();
+function setPlaybackButtonState(isPlaying) {
+  els.playPauseBtn.innerHTML = iconSvg(isPlaying ? 'pause' : 'play');
+}
+
+function getPlaybackList(song) {
+  if (!song) return [];
+  if (song.source === 'youtube') return state.videos;
+  return state.songs;
 }
 
 function findCurrentIndex() {
   if (!state.currentSong) return -1;
   const key = String(state.currentSong.id || state.currentSong.videoId || state.currentSong.title);
-  return state.queue.findIndex((s) => String(s.id) === key);
+  const list = getPlaybackList(state.currentSong);
+  return list.findIndex((s) => String(s.id || s.videoId || s.title) === key);
 }
 
 function playIndex(idx) {
-  if (idx < 0 || idx >= state.queue.length) return;
-  playSong(state.queue[idx]);
+  const list = getPlaybackList(state.currentSong);
+  if (idx < 0 || idx >= list.length) return;
+  playSong(list[idx]);
 }
 
 function nextTrack() {
+  if (!state.currentSong) return;
+  const list = getPlaybackList(state.currentSong);
   const idx = findCurrentIndex();
-  if (idx === -1) {
-    if (state.queue.length > 0) playIndex(0);
+  if (idx === -1 || list.length === 0) {
     return;
   }
   const next = idx + 1;
-  if (next < state.queue.length) {
+  if (next < list.length) {
     playIndex(next);
   } else {
-    // reached end - stop playback
     els.player.pause();
     state.playing = false;
     els.playPauseBtn.innerHTML = iconSvg('play');
@@ -256,11 +311,81 @@ function prevTrack() {
 
 function toggleLike(song) {
   if (!song) return;
-  const key = String(song.id || song.videoId || song.title);
+  const key = songKey(song);
   if (state.liked.includes(key)) {
     state.liked = state.liked.filter((item) => item !== key);
   } else {
     state.liked.push(key);
+  }
+}
+
+function pushHistory(song) {
+  if (!song) return;
+  const key = songKey(song);
+  const existing = state.history.find((item) => songKey(item) === key);
+  if (existing) {
+    state.history = [existing, ...state.history.filter((item) => songKey(item) !== key)];
+  } else {
+    state.history = [{ ...song, id: key }, ...state.history];
+  }
+  state.history = state.history.slice(0, 20);
+  renderHistory();
+  renderHomeRecommendations();
+}
+
+function buildSimilarQuery(song) {
+  const title = String(song?.title || '').trim();
+  const artist = String(song?.artist || '').trim();
+  return [title, artist].filter(Boolean).join(' ');
+}
+
+async function fetchLyricsForSong(song) {
+  if (!song || !song.videoId || song.source !== 'youtube-music') {
+    return;
+  }
+  const token = `${song.videoId}:${Date.now()}`;
+  state.lyricsRequestToken = token;
+  try {
+    const lyrics = await window.electronAPI.getLyrics(song.videoId, song.source);
+    if (state.lyricsRequestToken !== token) return;
+    const finalLyrics = String(lyrics || '').trim();
+    song.lyrics = finalLyrics || 'No lyrics available';
+    if (state.currentSong && songKey(state.currentSong) === songKey(song)) {
+      updateDetail(song);
+    }
+  } catch (error) {
+    if (state.lyricsRequestToken !== token) return;
+    song.lyrics = 'No lyrics available';
+    if (state.currentSong && songKey(state.currentSong) === songKey(song)) {
+      updateDetail(song);
+    }
+  }
+}
+
+async function fetchSimilarSongsForSong(song) {
+  const query = buildSimilarQuery(song);
+  if (!query) {
+    state.similarSongs = [];
+    renderHomeRecommendations();
+    return;
+  }
+  try {
+    const results = await window.electronAPI.searchYouTube(query, 'youtube-music');
+    const mapped = (results || []).map((item) => ({
+      id: item.videoId || item.id,
+      title: item.title,
+      artist: item.author || item.artist || 'Unknown artist',
+      duration: item.duration || '0:00',
+      thumbnail: item.thumbnail || 'https://placehold.co/60x60/1f1f1f/fff?text=♫',
+      source: 'youtube-music',
+      videoId: item.videoId || item.id,
+      lyrics: item.lyrics || '',
+    }));
+    state.similarSongs = dedupeSongs(mapped, new Set([songKey(song)])).slice(0, 20);
+    renderHomeRecommendations();
+  } catch (error) {
+    state.similarSongs = [];
+    renderHomeRecommendations();
   }
 }
 
@@ -269,6 +394,9 @@ function playSong(song) {
   state.currentSong = song;
   updateNowPlaying(song);
   updateDetail(song);
+  pushHistory(song);
+  fetchLyricsForSong(song);
+  fetchSimilarSongsForSong(song);
 
   if (song.source === 'youtube' || song.source === 'youtube-music') {
     window.electronAPI.downloadAudio(song)
@@ -281,7 +409,7 @@ function playSong(song) {
         els.player.volume = state.volume;
         els.player.play();
         state.playing = true;
-        els.playPauseBtn.textContent = '❚❚';
+        setPlaybackButtonState(true);
       })
       .catch(() => {
         els.nowTitle.textContent = 'Download failed';
@@ -291,21 +419,26 @@ function playSong(song) {
     els.player.volume = state.volume;
     els.player.play();
     state.playing = true;
-    els.playPauseBtn.textContent = '❚❚';
+    setPlaybackButtonState(true);
   }
 
-  queueSong(song);
 }
 
 async function performSearch(query) {
   const q = (query || '').trim();
   if (!q) return;
-  const source = state.activeSource;
+
+  const targetView = getCurrentSection() === 'videos' ? 'videos' : 'songs';
+  const source = getSearchSourceForView(targetView);
+
+  state.currentView = targetView;
+  state.activeSource = source;
+  setView(targetView);
   els.searchStatus.textContent = 'Searching...';
 
   try {
     const results = await window.electronAPI.searchYouTube(q, source);
-    const mapped = (results || []).map((item) => ({
+    const mapped = dedupeSongs((results || []).map((item) => ({
       id: item.videoId || item.id,
       title: item.title,
       artist: item.author || item.artist || 'Unknown artist',
@@ -313,10 +446,10 @@ async function performSearch(query) {
       thumbnail: item.thumbnail || 'https://placehold.co/60x60/1f1f1f/fff?text=♫',
       source: source,
       videoId: item.videoId || item.id,
-      lyrics: item.title,
-    }));
+      lyrics: item.lyrics || '',
+    })));
 
-    if (source === 'youtube') {
+    if (targetView === 'videos') {
       state.videos = mapped;
       renderVideos();
     } else {
@@ -375,46 +508,15 @@ function bindControls() {
     item.addEventListener('click', () => setView(item.dataset.view));
   });
 
-  document.querySelectorAll('.source-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.activeSource = button.dataset.source;
-      document.querySelectorAll('.source-btn').forEach((btn) => btn.classList.toggle('active', btn === button));
-    });
-  });
-
   els.searchBtn.addEventListener('click', () => {
     performSearch(els.searchInput.value);
-    setView('search');
   });
 
-  els.searchInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      performSearch(els.searchInput.value);
-      setView('search');
-    }
-  });
-
-  els.browseBtn.addEventListener('click', async () => {
-    const songs = await window.electronAPI.browseMusicFolder();
-    state.songs = (songs || []).map((song, index) => ({
-      id: String(song.id || song.path || index),
-      title: song.title || 'Unknown title',
-      artist: song.artist || 'Local file',
-      duration: song.duration || 0,
-      thumbnail: song.thumbnail || 'https://placehold.co/60x60/1f1f1f/fff?text=♫',
-      source: 'local',
-      path: song.path,
-      lyrics: song.title,
-    }));
-    renderSongs();
-  });
-
-  document.querySelectorAll('.tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn === tab));
-      const key = tab.dataset.tab;
-      document.querySelectorAll('.tab-content').forEach((pane) => pane.classList.toggle('active', pane.id === `${key}Pane`));
-    });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    const activeTag = document.activeElement?.tagName;
+    if (activeTag === 'TEXTAREA') return;
+    performSearch(els.searchInput.value);
   });
 
   els.playPauseBtn.addEventListener('click', () => {
@@ -422,15 +524,14 @@ function bindControls() {
     if (els.player.paused) {
       els.player.play();
       state.playing = true;
-      els.playPauseBtn.innerHTML = iconSvg('pause');
+      setPlaybackButtonState(true);
     } else {
       els.player.pause();
       state.playing = false;
-      els.playPauseBtn.innerHTML = iconSvg('play');
+      setPlaybackButtonState(false);
     }
   });
 
-  // previous / next handlers
   els.prevBtn.addEventListener('click', () => {
     prevTrack();
   });
@@ -456,7 +557,6 @@ function bindControls() {
   });
 
   els.player.addEventListener('ended', () => {
-    // auto play next track in queue
     nextTrack();
   });
 
@@ -504,7 +604,7 @@ function bindControls() {
 
 async function bootstrap() {
   bindControls();
-  setView('liked');
+  setView('home');
   const settings = await window.electronAPI.getSettings();
   if (settings && settings.volume) {
     state.volume = Number(settings.volume) || 0.8;

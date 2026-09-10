@@ -19,9 +19,102 @@ function formatQuery(query, source = 'youtube-music') {
   return source === 'youtube' ? trimmed : `${trimmed} song`;
 }
 
+function spawnYtMusicSearch(term) {
+  const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', 'ytmusic_search.py');
+  const venvPython = path.join(__dirname, '..', '..', '..', '.venv', 'bin', 'python');
+  const pythonBinary = fs.existsSync(venvPython) ? venvPython : 'python3';
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(pythonBinary, [scriptPath, term], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || 'ytmusic search failed'));
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(stdout.trim() || '[]');
+        resolve(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        reject(new Error('Unable to parse YT Music search response'));
+      }
+    });
+
+    child.on('error', (error) => reject(error));
+  });
+}
+
+function spawnYtMusicLyrics(videoId) {
+  const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', 'ytmusic_lyrics.py');
+  const venvPython = path.join(__dirname, '..', '..', '..', '.venv', 'bin', 'python');
+  const pythonBinary = fs.existsSync(venvPython) ? venvPython : 'python3';
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(pythonBinary, [scriptPath, videoId], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || 'ytmusic lyrics failed'));
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(stdout.trim() || '{}');
+        resolve(typeof parsed.lyrics === 'string' ? parsed.lyrics : '');
+      } catch (error) {
+        reject(new Error('Unable to parse YT Music lyrics response'));
+      }
+    });
+
+    child.on('error', (error) => reject(error));
+  });
+}
+
 async function searchYoutube(query, source = 'youtube-music') {
   const term = formatQuery(query, source);
   if (!term) return [];
+
+  if (source === 'youtube-music') {
+    try {
+      const results = await spawnYtMusicSearch(term);
+      return results.map((item) => ({
+        id: item.videoId || item.id,
+        title: item.title,
+        artist: item.artist || 'Unknown artist',
+        duration: item.duration || '0:00',
+        thumbnail: item.thumbnail || '',
+        videoId: item.videoId || item.id,
+        source: 'youtube-music',
+        author: item.artist || 'Unknown artist',
+        url: item.url || `https://music.youtube.com/watch?v=${item.videoId || item.id}`,
+        lyrics: item.lyrics || '',
+      }));
+    } catch (error) {
+      console.error('[searchYoutube][ytmusic]', error);
+      return [];
+    }
+  }
 
   try {
     const result = await ytSearch(term);
@@ -39,6 +132,16 @@ async function searchYoutube(query, source = 'youtube-music') {
   } catch (error) {
     console.error('[searchYoutube]', error);
     return [];
+  }
+}
+
+async function getLyricsFromVideo(videoId, source = 'youtube-music') {
+  if (!videoId || source !== 'youtube-music') return '';
+  try {
+    return await spawnYtMusicLyrics(videoId);
+  } catch (error) {
+    console.error('[getLyricsFromVideo]', error);
+    return '';
   }
 }
 
@@ -124,6 +227,7 @@ async function downloadAudio(video) {
 module.exports = {
   ensureCacheDir,
   searchYoutube,
+  getLyricsFromVideo,
   downloadAudio,
   CACHE_DIR,
   thumbPathById,

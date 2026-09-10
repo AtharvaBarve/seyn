@@ -30,14 +30,6 @@
             <span class="nav-icon">◉</span>
             <span>Videos</span>
           </button>
-          <button class="nav-item" data-view="search">
-            <span class="nav-icon">⌕</span>
-            <span>Search</span>
-          </button>
-          <button class="nav-item" data-view="queue">
-            <span class="nav-icon">☰</span>
-            <span>Queue</span>
-          </button>
           <button class="nav-item" data-view="playlists">
             <span class="nav-icon">☷</span>
             <span>Playlists</span>
@@ -65,14 +57,23 @@
           </div>
 
           <div class="toolbar">
-            <button class="source-btn active" data-source="youtube-music">YouTube Music</button>
-            <button class="source-btn" data-source="youtube">YouTube</button>
             <button id="searchBtn" class="primary-btn">Search</button>
-            <button id="browseBtn" class="secondary-btn">Browse Folder</button>
           </div>
         </header>
 
-        <div class="content-view active" id="likedView">
+        <div class="content-view active" id="homeView">
+          <div class="page-heading">
+            <h1>Home</h1>
+          </div>
+          <div class="home-panel">
+            <div class="home-section">
+              <h2>Recommended for you</h2>
+              <div id="homeRecommendations" class="song-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-view" id="likedView">
           <div class="page-heading">
             <h1>Liked Songs</h1>
           </div>
@@ -83,14 +84,6 @@
           <div class="page-heading">
             <h1>Songs</h1>
             <span id="songsCount" class="view-count">0 songs</span>
-          </div>
-          <div class="table-head">
-            <span class="head-index">#</span>
-            <span class="head-title">Title</span>
-            <span class="head-artist">Artist</span>
-            <span class="head-time">⏱</span>
-            <span class="head-like">❤</span>
-            <span class="head-more">⋮</span>
           </div>
           <div id="songsList" class="song-list table-list"></div>
         </div>
@@ -109,14 +102,6 @@
             <span id="searchStatus" class="view-count">Ready</span>
           </div>
           <div id="searchList" class="song-list"></div>
-        </div>
-
-        <div class="content-view" id="queueView">
-          <div class="page-heading">
-            <h1>Queue</h1>
-            <span id="queueCount" class="view-count">0 tracks</span>
-          </div>
-          <div id="queueList" class="song-list"></div>
         </div>
 
         <div class="content-view" id="playlistsView">
@@ -164,20 +149,8 @@
             <div id="detailArtist" class="detail-artist">No artist</div>
           </div>
 
-          <div class="tabs">
-            <button class="tab active" data-tab="lyrics">Lyrics</button>
-            <button class="tab" data-tab="video">Video</button>
-            <button class="tab" data-tab="related">Related</button>
-          </div>
-
-          <div class="tab-content active" id="lyricsPane">
+          <div id="lyricsPane">
             <div id="lyricsContent" class="lyrics-area">No lyrics available</div>
-          </div>
-          <div class="tab-content" id="videoPane">
-            <div class="lyrics-area muted">Video metadata will appear here.</div>
-          </div>
-          <div class="tab-content" id="relatedPane">
-            <div class="lyrics-area muted">Related tracks and suggestions.</div>
           </div>
         </div>
       </aside>

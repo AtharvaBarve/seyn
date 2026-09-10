@@ -157,6 +157,7 @@ button {
   border-radius: 10px;
   background: rgba(255,255,255,0.02);
   color: var(--text);
+  transition: all 0.18s ease;
 }
 .source-btn {
   padding: 9px 12px;
@@ -177,6 +178,20 @@ button {
 .secondary-btn.danger {
   background: rgba(255,99,99,0.08);
   border-color: rgba(255,99,99,0.18);
+}
+button svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.primary-btn:hover,
+.secondary-btn:hover,
+.source-btn:hover,
+.transport-btn:hover,
+.mini-btn:hover,
+.song-action:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.18);
 }
 .content-view {
   display: none;
@@ -213,7 +228,7 @@ button {
 }
 .song-row {
   display: grid;
-  grid-template-columns: 32px 60px minmax(0, 1.4fr) minmax(0, 1fr) 70px 34px 34px;
+  grid-template-columns: 32px 60px minmax(0, 1.4fr) minmax(0, 1fr) 70px 34px;
   align-items: center;
   gap: 12px;
   min-height: 62px;
@@ -247,13 +262,6 @@ button {
   font-weight: 600;
   font-size: 1rem;
 }
-.song-sub {
-  color: var(--muted);
-  font-size: 0.78rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .song-artist {
   color: var(--muted);
   font-size: 0.9rem;
@@ -274,12 +282,15 @@ button {
   background: transparent;
   color: var(--muted);
   font-size: 1rem;
+  display: grid;
+  place-items: center;
+}
+.song-action svg {
+  width: 14px;
+  height: 14px;
 }
 .song-action.liked {
   color: #ff6b7a;
-}
-.song-action.more {
-  font-size: 1.15rem;
 }
 .table-list .song-row {
   padding-right: 8px;
@@ -317,37 +328,27 @@ button {
   color: var(--muted);
   font-size: 0.9rem;
 }
-.tabs {
-  display: flex;
-  gap: 6px;
-  margin: 16px 0 12px;
-}
-.tab {
-  background: transparent;
-  border: 0;
-  color: var(--muted);
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-.tab.active {
-  color: var(--text);
-  background: rgba(255,255,255,0.04);
-}
-.tab-content {
-  display: none;
-}
-.tab-content.active {
-  display: block;
-}
 .lyrics-area {
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 10px;
   padding: 12px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.7;
   min-height: 220px;
+  max-height: 320px;
+  overflow: auto;
+  scroll-behavior: smooth;
   white-space: pre-line;
+}
+
+.lyrics-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lyrics-area::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
 }
 .lyrics-area.muted {
   color: var(--soft);
@@ -409,11 +410,27 @@ button {
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.08);
   color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.transport-btn svg,
+.mini-btn svg {
+  width: 16px;
+  height: 16px;
 }
 .transport-btn.primary {
   width: 42px;
   height: 42px;
-  background: rgba(255,255,255,0.1);
+  background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
+  box-shadow: 0 10px 18px rgba(255,255,255,0.08);
+}
+.transport-btn.primary svg {
+  width: 18px;
+  height: 18px;
+}
+.mini-btn.active {
+  color: #ff6b7a;
 }
 .progress-line {
   display: grid;
