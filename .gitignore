@@ -27,6 +27,4 @@ yarn-error.log*
 Thumbs.db
 *.AppImage
 *.snap
-src/
-fix-sandbox.js
 inspired_ui_theme/

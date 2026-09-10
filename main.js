@@ -1,153 +1,110 @@
-'use strict';
-
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const {
-  createLocalSong,
-  createYouTubeSong,
-  normalizeSong,
-} = require('./src/shared/types');
+const { searchYoutube, downloadAudio, CACHE_DIR } = require('./src/main/services/youtubeService');
+const { scanMusicFolder } = require('./src/main/services/libraryService');
 
-const {
-  SUPPORTED_AUDIO_EXTENSIONS,
-  DEFAULT_VOLUME,
-} = require('./src/shared/constants');
+const SETTINGS_PATH = path.join(app.getPath('userData'), 'vitune-settings.json');
 
-const { scanMusicFolder } = require('./src/main/services/libraryScanner');
-const { searchYouTube, downloadAudio, cacheManager } = require('./src/main/services/youtubeService');
-const { loadSettings, saveSettings } = require('./src/main/settings');
-
-let mainWindow;
-let settings;
-
-// Initialize services after Electron is ready
-async function initializeServices() {
-  settings = loadSettings();
-  return {
-    cacheManager,
-    searchYouTube,
-    downloadAudio,
-  };
+function readSettings() {
+  try {
+    const raw = fs.readFileSync(SETTINGS_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch (error) {
+    return { musicFolder: '', volume: 0.8 };
+  }
 }
 
-// Create the browser window.
+function writeSettings(next) {
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(next, null, 2));
+  return next;
+}
+
+let mainWindow;
+
+if (process.platform === 'linux' && process.getuid && process.getuid() === 0) {
+  app.commandLine.appendSwitch('no-sandbox');
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1440,
+    height: 920,
+    minWidth: 1100,
+    minHeight: 700,
+    backgroundColor: '#0a0d12',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
-
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 }
 
-// Listen when window is closed.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.whenReady().then(async () => {
-  // Initialize services
-  await initializeServices();
-
+app.whenReady().then(() => {
   createWindow();
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-// IPC Handlers
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
 
-// --- Library ---
+ipcMain.handle('get-settings', () => readSettings());
+ipcMain.handle('set-settings', (_, incoming) => {
+  const current = readSettings();
+  return writeSettings({ ...current, ...incoming });
+});
 
-ipcMain.handle('library:select-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle('browse-music-folder', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
-    title: 'Select Music Folder',
+    title: 'Select music folder',
   });
-  if (result.canceled || !result.filePaths[0]) return null;
-
-  const folderPath = result.filePaths[0];
-  const songs = await scanMusicFolder(folderPath);
-  return saveSettings({ musicFolder: folderPath, localLibrary: songs.map(s => s.id) })
-    .then(() => songs);
+  if (canceled || !filePaths[0]) return [];
+  const folder = filePaths[0];
+  const songs = scanMusicFolder(folder);
+  const settings = readSettings();
+  writeSettings({ ...settings, musicFolder: folder });
+  return songs;
 });
 
-ipcMain.handle('library:scan-folder', async (_, folderPath) => {
-  if (!folderPath || typeof folderPath !== 'string') return [];
-  return scanMusicFolder(folderPath);
+ipcMain.handle('get-local-songs', () => {
+  const settings = readSettings();
+  const folder = settings.musicFolder;
+  if (!folder || !fs.existsSync(folder)) return [];
+  return scanMusicFolder(folder);
 });
 
-ipcMain.handle('library:get-folder', () => settings.musicFolder || null);
-
-ipcMain.handle('library:get-local-songs', async () => {
-  // Return cached local songs from previous scan
-  return cacheManager.getInfo();
+ipcMain.handle('search-youtube', async (_, query, source = 'youtube-music') => {
+  return searchYoutube(query, source);
 });
 
-// --- YouTube ---
-
-ipcMain.handle('youtube:search', async (_, query) => {
-  if (!query || typeof query !== 'string' || query.trim() === '') return [];
-  return searchYouTube(query.trim()).then(songs => songs.map(song => normalizeSong(song)));
+ipcMain.handle('download-audio', async (_, video) => {
+  return downloadAudio(video);
 });
 
-ipcMain.handle('youtube:download', async (_, video) => {
-  if (!video || typeof video !== 'object') return null;
-  try {
-    return await downloadAudio(video);
-  } catch (error) {
-    console.error('[YouTube Download IPC Error]', error);
-    return null;
+ipcMain.handle('clear-cache', async () => {
+  if (!fs.existsSync(CACHE_DIR)) return { removed: 0 };
+  let removed = 0;
+  for (const file of fs.readdirSync(CACHE_DIR)) {
+    const target = path.join(CACHE_DIR, file);
+    if (fs.statSync(target).isFile()) {
+      fs.unlinkSync(target);
+      removed += 1;
+    }
   }
+  return { removed };
 });
 
-// --- Cache ---
-
-ipcMain.handle('cache:get-info', () => {
-  return cacheManager.getInfo();
-});
-
-ipcMain.handle('cache:clear', async () => {
-  return cacheManager.clear();
-});
-
-ipcMain.handle('cache:file-exists', async (_, videoId) => {
-  if (!videoId || typeof videoId !== 'string') return false;
-  return cacheManager.fileExists(videoId);
-});
-
-// --- New IPC handlers for queue and playback ---
-
-ipcMain.handle('player:play', async (_, songNormalized) => {
-  if (!songNormalized) return { success: false, error: 'No song provided' };
-  try {
-    const normalized = normalizeSong(songNormalized);
-    return { success: true, normalizedSong: normalized };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('player:seek', async (_, position) => {
-  return { success: true, position };
-});
-
-ipcMain.handle('player:set-volume', async (_, volume) => {
-  return { success: true, volume };
-});
-
-ipcMain.handle('player:toggle-mute', async () => {
-  return { success: true, isMuted: false };
-});
-
-// --- Cleanup on app close ---
-app.on('will-quit', () => {
-  // Any cleanup logic here
+ipcMain.handle('get-cache-files', async () => {
+  if (!fs.existsSync(CACHE_DIR)) return [];
+  return fs.readdirSync(CACHE_DIR).map((name) => ({
+    name,
+    path: path.join(CACHE_DIR, name),
+    size: fs.statSync(path.join(CACHE_DIR, name)).size,
+  }));
 });
