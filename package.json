@@ -1,6 +1,8 @@
 {
   "name": "vimusic-desktop",
   "version": "1.0.0",
+  "description": "ViTune desktop music player",
+  "author": "ViTune",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -12,7 +14,7 @@
     "yt-search": "^2.13.1"
   },
   "devDependencies": {
-    "electron": "37.2.5",
+    "electron": "38.0.0",
     "electron-builder": "^26.0.12"
   },
   "build": {

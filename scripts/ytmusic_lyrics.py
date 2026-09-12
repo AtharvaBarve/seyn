@@ -21,12 +21,25 @@ def main():
             print(json.dumps({"lyrics": ""}))
             return 0
 
-        lyrics_data = ytm.get_lyrics(lyrics_id)
+        lyrics_data = ytm.get_lyrics(lyrics_id, timestamps=True)
         if not isinstance(lyrics_data, dict):
             print(json.dumps({"lyrics": ""}))
             return 0
 
-        print(json.dumps({"lyrics": (lyrics_data.get("lyrics") or "").strip()}))
+        raw_lyrics = lyrics_data.get("lyrics") or ""
+        if isinstance(raw_lyrics, list):
+            lines = [
+                {
+                    "text": str(line.text or "").strip(),
+                    "start": float(line.start_time or 0) / 1000,
+                    "end": float(line.end_time or 0) / 1000,
+                }
+                for line in raw_lyrics
+                if str(line.text or "").strip()
+            ]
+            print(json.dumps({"lyrics": "\n".join(line["text"] for line in lines), "lines": lines}))
+        else:
+            print(json.dumps({"lyrics": str(raw_lyrics).strip(), "lines": []}))
         return 0
     except Exception as exc:
         print(json.dumps({"error": str(exc)}))

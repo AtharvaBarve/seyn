@@ -8,7 +8,14 @@ function scanMusicFolder(folderPath) {
   const result = [];
 
   function walk(currentPath) {
-    for (const entry of fs.readdirSync(currentPath, { withFileTypes: true })) {
+    let entries;
+    try {
+      entries = fs.readdirSync(currentPath, { withFileTypes: true });
+    } catch (error) {
+      console.warn(`[library] Unable to read ${currentPath}: ${error.message}`);
+      return;
+    }
+    for (const entry of entries) {
       const fullPath = path.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);

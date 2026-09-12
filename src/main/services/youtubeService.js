@@ -81,7 +81,10 @@ function spawnYtMusicLyrics(videoId) {
 
       try {
         const parsed = JSON.parse(stdout.trim() || '{}');
-        resolve(typeof parsed.lyrics === 'string' ? parsed.lyrics : '');
+        resolve({
+          lyrics: typeof parsed.lyrics === 'string' ? parsed.lyrics : '',
+          lines: Array.isArray(parsed.lines) ? parsed.lines : [],
+        });
       } catch (error) {
         reject(new Error('Unable to parse YT Music lyrics response'));
       }
@@ -118,7 +121,7 @@ async function searchYoutube(query, source = 'youtube-music') {
 
   try {
     const result = await ytSearch(term);
-    return (result?.videos || []).slice(0, 12).map((video) => ({
+    return (result?.videos || []).slice(0, 25).map((video) => ({
       id: video.videoId,
       title: video.title,
       artist: video.author?.name || 'Unknown artist',
@@ -136,12 +139,12 @@ async function searchYoutube(query, source = 'youtube-music') {
 }
 
 async function getLyricsFromVideo(videoId, source = 'youtube-music') {
-  if (!videoId || source !== 'youtube-music') return '';
+  if (!videoId || source !== 'youtube-music') return { lyrics: '', lines: [] };
   try {
     return await spawnYtMusicLyrics(videoId);
   } catch (error) {
     console.error('[getLyricsFromVideo]', error);
-    return '';
+    return { lyrics: '', lines: [] };
   }
 }
 
@@ -161,16 +164,26 @@ function downloadThumbnail(url, outputPath) {
     const https = require('https');
     const file = fs.createWriteStream(outputPath);
     https.get(url, (response) => {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        response.resume();
+        file.destroy();
+        try { fs.unlinkSync(outputPath); } catch (error) { /* best effort */ }
+        return resolve();
+      }
       response.pipe(file);
       file.on('finish', () => file.close(resolve));
-    }).on('error', () => resolve());
+    }).on('error', () => {
+      file.destroy();
+      try { fs.unlinkSync(outputPath); } catch (error) { /* best effort */ }
+      resolve();
+    });
   });
 }
 
 async function downloadAudio(video) {
   if (!video || !video.videoId) return null;
   const filePath = audioPathById(video.videoId);
-  if (fs.existsSync(filePath)) return filePath;
+  if (fs.existsSync(filePath) && fs.statSync(filePath).size > 0) return filePath;
 
   const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
   try {
@@ -189,6 +202,7 @@ async function downloadAudio(video) {
     }
     return filePath;
   } catch (error) {
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (cleanupError) { /* best effort */ }
     try {
       const fallbackFile = filePath.replace(/\.mp3$/, '.tmp.mp3');
       const args = [
@@ -211,6 +225,7 @@ async function downloadAudio(video) {
             fs.renameSync(fallbackFile, filePath);
             resolve();
           } else {
+            try { if (fs.existsSync(fallbackFile)) fs.unlinkSync(fallbackFile); } catch (cleanupError) { /* best effort */ }
             reject(new Error(stderr.trim() || 'yt-dlp failed'));
           }
         });

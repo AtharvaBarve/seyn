@@ -33,13 +33,13 @@ def main():
 
     try:
         ytm = YTMusic()
-        results = ytm.search(query, filter="songs", limit=10)
+        results = ytm.search(query, filter="songs", limit=25)
     except Exception as exc:
         print(json.dumps({"error": str(exc)}))
         return 1
 
     items = []
-    for item in results[:10]:
+    for item in results[:25]:
         video_id = item.get("videoId")
         title = item.get("title") or "Unknown title"
         artist = get_artist_name(item)

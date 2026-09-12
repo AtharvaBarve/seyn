@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLocalSongs: () => ipcRenderer.invoke('get-local-songs'),
   browseMusicFolder: () => ipcRenderer.invoke('browse-music-folder'),
   clearCache: () => ipcRenderer.invoke('clear-cache'),
+  deleteCacheFile: (videoId) => ipcRenderer.invoke('delete-cache-file', videoId),
   getCacheFiles: () => ipcRenderer.invoke('get-cache-files'),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setSettings: (settings) => ipcRenderer.invoke('set-settings', settings),

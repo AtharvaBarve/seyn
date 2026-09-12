@@ -19,31 +19,31 @@
 
         <nav class="nav-menu" aria-label="Main navigation">
           <button class="nav-item" data-view="home">
-            <span class="nav-icon">⌂</span>
+            <span class="nav-icon" data-icon="home"></span>
             <span>Home</span>
           </button>
           <button class="nav-item" data-view="songs">
-            <span class="nav-icon">♫</span>
+            <span class="nav-icon" data-icon="music"></span>
             <span>Songs</span>
           </button>
           <button class="nav-item" data-view="videos">
-            <span class="nav-icon">◉</span>
+            <span class="nav-icon" data-icon="video"></span>
             <span>Videos</span>
           </button>
           <button class="nav-item" data-view="playlists">
-            <span class="nav-icon">☷</span>
+            <span class="nav-icon" data-icon="playlist"></span>
             <span>Playlists</span>
           </button>
           <button class="nav-item active" data-view="liked">
-            <span class="nav-icon">♥</span>
+            <span class="nav-icon" data-icon="heart"></span>
             <span>Likes</span>
           </button>
           <button class="nav-item" data-view="history">
-            <span class="nav-icon">◔</span>
+            <span class="nav-icon" data-icon="clock"></span>
             <span>History</span>
           </button>
           <button class="nav-item" data-view="settings">
-            <span class="nav-icon">⚙</span>
+            <span class="nav-icon" data-icon="settings"></span>
             <span>Settings</span>
           </button>
         </nav>
@@ -52,8 +52,8 @@
       <main class="main-panel">
         <header class="topbar">
           <div class="search-shell">
-            <span class="search-prefix">⌕</span>
-            <input id="searchInput" type="text" placeholder="Search songs, artists, albums, or videos..." />
+            <span id="searchPrefix" class="search-prefix"></span>
+            <input id="searchInput" type="text" placeholder="Search songs, artists, albums, playlists, videos..." />
           </div>
 
           <div class="toolbar">
@@ -67,7 +67,7 @@
           </div>
           <div class="home-panel">
             <div class="home-section">
-              <h2>Recommended for you</h2>
+              <h2>Your Music</h2>
               <div id="homeRecommendations" class="song-list"></div>
             </div>
           </div>
@@ -127,10 +127,16 @@
               <h3>Playback</h3>
               <label>Volume</label>
               <input id="settingsVolume" type="range" min="0" max="1" step="0.01" value="0.8" />
+              <label class="setting-toggle"><input id="autoReplaySetting" type="checkbox" /> <span>Replay current song</span></label>
+            </div>
+            <div class="settings-card">
+              <h3>Lyrics</h3>
+              <label class="setting-toggle"><input id="syncLyricsSetting" type="checkbox" checked /> <span>Use synchronized lyrics when available</span></label>
             </div>
             <div class="settings-card">
               <h3>Library</h3>
               <button id="refreshLibraryBtn" class="secondary-btn">Refresh Library</button>
+              <button id="clearHistoryBtn" class="secondary-btn">Clear History</button>
             </div>
             <div class="settings-card">
               <h3>Cache</h3>
@@ -167,9 +173,9 @@
 
       <div class="player-center">
         <div class="transport">
-          <button id="prevBtn" class="transport-btn" aria-label="Previous">⏮</button>
-          <button id="playPauseBtn" class="transport-btn primary" aria-label="Play / pause">▶</button>
-          <button id="nextBtn" class="transport-btn" aria-label="Next">⏭</button>
+          <button id="prevBtn" class="transport-btn" aria-label="Previous"></button>
+          <button id="playPauseBtn" class="transport-btn primary" aria-label="Play / pause"></button>
+          <button id="nextBtn" class="transport-btn" aria-label="Next"></button>
         </div>
         <div class="progress-line">
           <span id="timeCurrent">0:00</span>
@@ -179,13 +185,33 @@
       </div>
 
       <div class="player-right">
-        <button id="likeBtn" class="mini-btn" aria-label="Like">♥</button>
-        <button id="muteBtn" class="mini-btn" aria-label="Mute">🔊</button>
+        <button id="likeBtn" class="mini-btn" aria-label="Like"></button>
+        <button id="muteBtn" class="mini-btn" aria-label="Mute"></button>
         <input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.8" />
       </div>
     </footer>
 
     <audio id="player" preload="metadata"></audio>
+    <div id="playlistPickerOverlay" class="playlist-picker-overlay" hidden>
+      <div class="playlist-picker-window" role="dialog" aria-modal="true" aria-labelledby="playlistPickerTitle">
+        <div class="playlist-picker-heading">
+          <div>
+            <h2 id="playlistPickerTitle">Add to playlist</h2>
+            <p id="playlistPickerSong">Choose a playlist for this song.</p>
+          </div>
+          <button id="closePlaylistPicker" class="playlist-picker-close" aria-label="Close">×</button>
+        </div>
+        <div id="playlistPickerList" class="playlist-picker-list"></div>
+        <div class="playlist-picker-create">
+          <input id="playlistPickerName" type="text" placeholder="Create a new playlist" />
+          <button id="createAndAddPlaylist" class="secondary-btn">Create & Add</button>
+        </div>
+        <div class="playlist-picker-actions">
+          <button id="cancelPlaylistPicker" class="secondary-btn">Cancel</button>
+          <button id="confirmPlaylistPicker" class="primary-btn" disabled>Add song</button>
+        </div>
+      </div>
+    </div>
     <script src="renderer.js"></script>
   </body>
 </html>

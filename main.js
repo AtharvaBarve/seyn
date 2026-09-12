@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { searchYoutube, getLyricsFromVideo, downloadAudio, CACHE_DIR } = require('./src/main/services/youtubeService');
+const { searchYoutube, getLyricsFromVideo, downloadAudio, CACHE_DIR, audioPathById, thumbPathById } = require('./src/main/services/youtubeService');
 const { scanMusicFolder } = require('./src/main/services/libraryService');
 
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'vitune-settings.json');
@@ -11,7 +11,7 @@ function readSettings() {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf8');
     return JSON.parse(raw);
   } catch (error) {
-    return { musicFolder: '', volume: 0.8 };
+    return { musicFolder: '', volume: 0.8, liked: [], likedSongs: [], history: [], playlists: [], playCounts: {}, autoReplay: false, syncLyrics: true };
   }
 }
 
@@ -56,7 +56,12 @@ app.on('window-all-closed', () => {
 ipcMain.handle('get-settings', () => readSettings());
 ipcMain.handle('set-settings', (_, incoming) => {
   const current = readSettings();
-  return writeSettings({ ...current, ...incoming });
+  return writeSettings({
+    ...current,
+    ...incoming,
+    liked: Array.isArray(incoming?.liked) ? incoming.liked : current.liked || [],
+    history: Array.isArray(incoming?.history) ? incoming.history : current.history || [],
+  });
 });
 
 ipcMain.handle('browse-music-folder', async () => {
@@ -97,6 +102,18 @@ ipcMain.handle('clear-cache', async () => {
   for (const file of fs.readdirSync(CACHE_DIR)) {
     const target = path.join(CACHE_DIR, file);
     if (fs.statSync(target).isFile()) {
+      fs.unlinkSync(target);
+      removed += 1;
+    }
+  }
+  return { removed };
+});
+
+ipcMain.handle('delete-cache-file', async (_, videoId) => {
+  if (!videoId || !/^[\w-]+$/.test(String(videoId))) return { removed: 0 };
+  let removed = 0;
+  for (const target of [audioPathById(String(videoId)), thumbPathById(String(videoId))]) {
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
       fs.unlinkSync(target);
       removed += 1;
     }
