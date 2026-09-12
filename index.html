@@ -3,16 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ViTune</title>
+    <title>Seyn</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-block">
-          <div class="brand-mark">V</div>
+          <div class="brand-mark" aria-label="Seyn logo">
+            <img src="assets/seyn-logo.png" alt="" />
+          </div>
           <div class="brand-copy">
-            <div class="brand-name">ViTune</div>
+            <div class="brand-name">Seyn</div>
             <div class="brand-sub">Music for everyone</div>
           </div>
         </div>
@@ -123,6 +125,14 @@
             <h1>Settings</h1>
           </div>
           <div class="settings-grid">
+            <div class="settings-card">
+              <h3>Appearance</h3>
+              <label for="themeSetting">Theme</label>
+              <select id="themeSetting" class="settings-select">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
             <div class="settings-card">
               <h3>Playback</h3>
               <label>Volume</label>

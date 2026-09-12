@@ -1,8 +1,8 @@
 {
-  "name": "vimusic-desktop",
+  "name": "seyn-desktop",
   "version": "1.0.0",
-  "description": "ViTune desktop music player",
-  "author": "ViTune",
+  "description": "Seyn desktop music player",
+  "author": "Seyn",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -18,17 +18,27 @@
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.vimusic.app",
-    "productName": "ViTune",
+    "appId": "com.seyn.app",
+    "productName": "Seyn",
     "files": [
-      "**/*"
+      "**/*",
+      "!**/.git{,/**/*}",
+      "!**/.venv{,/**/*}",
+      "!**/cache{,/**/*}",
+      "!**/dist{,/**/*}",
+      "!**/build{,/**/*}",
+      "!**/*.log"
     ],
     "directories": {
       "buildResources": "assets"
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/vitune.ico"
+      "icon": "assets/seyn-logo.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/seyn-logo.png"
     }
   }
 }

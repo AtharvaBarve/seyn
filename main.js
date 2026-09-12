@@ -11,7 +11,7 @@ function readSettings() {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf8');
     return JSON.parse(raw);
   } catch (error) {
-    return { musicFolder: '', volume: 0.8, liked: [], likedSongs: [], history: [], playlists: [], playCounts: {}, autoReplay: false, syncLyrics: true };
+    return { musicFolder: '', volume: 0.8, liked: [], likedSongs: [], history: [], playlists: [], playCounts: {}, autoReplay: false, syncLyrics: true, theme: 'dark' };
   }
 }
 
@@ -32,7 +32,8 @@ function createWindow() {
     height: 920,
     minWidth: 1100,
     minHeight: 700,
-    backgroundColor: '#0a0d12',
+    backgroundColor: '#000000',
+    icon: path.join(__dirname, 'assets', 'seyn-logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

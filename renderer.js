@@ -17,6 +17,7 @@ const state = {
   playbackList: null,
   autoReplay: false,
   syncLyrics: true,
+  theme: 'dark',
   volume: 0.8,
   lyricsRequestToken: null,
   playbackRequestToken: 0,
@@ -55,6 +56,7 @@ const els = {
   searchPrefix: document.getElementById('searchPrefix'),
   autoReplaySetting: document.getElementById('autoReplaySetting'),
   syncLyricsSetting: document.getElementById('syncLyricsSetting'),
+  themeSetting: document.getElementById('themeSetting'),
   clearHistoryBtn: document.getElementById('clearHistoryBtn'),
   cacheInfo: document.getElementById('cacheInfo'),
   settingsVolume: document.getElementById('settingsVolume'),
@@ -75,6 +77,13 @@ function formatDuration(value) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+function setTheme(theme) {
+  const nextTheme = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = nextTheme;
+  if (els.themeSetting) els.themeSetting.value = nextTheme;
+  return nextTheme;
 }
 
 function getSearchSourceForView(viewName) {
@@ -177,6 +186,7 @@ function renderSongRow(song, index, targetList, playbackList, options = {}) {
   likeButton.addEventListener('click', (event) => {
     event.stopPropagation();
     toggleLike(song);
+    if (state.currentSong && songKey(state.currentSong) === songKey(song)) updateNowPlaying(state.currentSong);
     renderAll();
   });
 
@@ -927,6 +937,11 @@ function bindControls() {
     window.electronAPI.setSettings({ syncLyrics: state.syncLyrics });
     updateDetail(state.currentSong);
   });
+  els.themeSetting.addEventListener('change', () => {
+    const theme = setTheme(els.themeSetting.value);
+    state.theme = theme;
+    window.electronAPI.setSettings({ theme });
+  });
 
   els.likeBtn.addEventListener('click', () => {
     if (!state.currentSong) return;
@@ -960,6 +975,8 @@ async function bootstrap() {
   setView('home');
   const settings = await window.electronAPI.getSettings();
   if (settings) {
+    state.theme = settings.theme === 'light' ? 'light' : 'dark';
+    setTheme(state.theme);
     const savedVolume = Number(settings.volume);
     state.volume = Number.isFinite(savedVolume) ? savedVolume : 0.8;
     els.volumeBar.value = state.volume;
@@ -981,6 +998,7 @@ async function bootstrap() {
     els.autoReplaySetting.checked = state.autoReplay;
     els.syncLyricsSetting.checked = state.syncLyrics;
   }
+  setTheme(state.theme);
   await loadLocalFolder();
   refreshCacheInfo();
   renderAll();

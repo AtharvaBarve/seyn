@@ -28,7 +28,8 @@ button:focus-visible, input:focus-visible { outline: 1px solid rgba(255,255,255,
 .app-shell { display: flex; height: calc(100vh - var(--player-height)); min-height: 0; background: var(--bg); }
 .sidebar { width: var(--sidebar-width); flex: 0 0 var(--sidebar-width); background: var(--surface-1); border-right: 1px solid var(--line-soft); padding: 18px 12px 12px; }
 .brand-block { display: flex; align-items: center; gap: 11px; padding: 2px 8px 22px; }
-.brand-mark { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: #eeeeee; color: #111111; font-size: 1.05rem; font-weight: 700; }
+.brand-mark { width: 36px; height: 36px; overflow: hidden; border-radius: 9px; display: grid; place-items: center; background: #eeeeee; color: #111111; font-size: 1.05rem; font-weight: 700; }
+.brand-mark img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .brand-name { font-size: 1.06rem; font-weight: 700; letter-spacing: -.02em; }
 .brand-sub { margin-top: 2px; color: var(--soft); font-size: .72rem; }
 .nav-menu { display: flex; flex-direction: column; gap: 3px; }
@@ -121,6 +122,7 @@ button svg { width: 17px; height: 17px; display: block; }
 .settings-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 8px; }
 .settings-card h3 { margin: 0; font-size: .98rem; }
 .settings-card label { color: var(--muted); font-size: .84rem; }
+.settings-select { padding: 9px 10px; color: var(--text); background: #090909; border: 1px solid var(--line); border-radius: 7px; }
 .setting-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .setting-toggle input { width: 15px; height: 15px; accent-color: #d8d8d8; }
 .cache-info { color: var(--soft); font-size: .78rem; }
@@ -132,7 +134,7 @@ button svg { width: 17px; height: 17px; display: block; }
 .playlist-item { position: relative; min-height: 145px; background: #0d0d0d; border: 1px solid var(--line-soft); border-radius: 9px; transition: background var(--transition), border-color var(--transition); }
 .playlist-item:hover, .playlist-item.active { background: #171717; border-color: rgba(255,255,255,.15); }
 .playlist-select { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 16px; border: 0; color: var(--text); background: transparent; text-align: left; }
-.folder-icon { width: 48px; height: 48px; display: grid; place-items: center; color: #c9a4ff; background: #1d1728; border-radius: 8px; }
+.folder-icon { width: 48px; height: 48px; display: grid; place-items: center; color: #d0d0d0; background: #1b1b1b; border-radius: 8px; }
 .folder-icon svg { width: 27px; height: 27px; }
 .playlist-select strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .88rem; }
 .playlist-select small, .playlist-detail-heading span { color: var(--soft); font-size: .75rem; }
@@ -185,3 +187,63 @@ button svg { width: 17px; height: 17px; display: block; }
   .player-right { gap: 4px; }
   #volumeBar { width: 80px; }
 }
+
+body[data-theme="light"] {
+  --bg: #f5f5f5;
+  --surface-1: #ffffff;
+  --surface-2: #fafafa;
+  --surface-hover: #eeeeee;
+  --surface-active: #e7e7e7;
+  --text: #161616;
+  --muted: #5f5f5f;
+  --soft: #777777;
+  --line: rgba(0, 0, 0, 0.13);
+  --line-soft: rgba(0, 0, 0, 0.09);
+}
+body[data-theme="light"] .main-panel,
+body[data-theme="light"] .app-shell { background: var(--bg); }
+body[data-theme="light"] .brand-mark { background: #1d1d1d; color: #f5f5f5; }
+body[data-theme="light"] .nav-item { color: #555; }
+body[data-theme="light"] .nav-item:hover { color: #161616; background: #ededed; }
+body[data-theme="light"] .nav-item.active { color: #161616; background: #e4e4e4; }
+body[data-theme="light"] .search-shell,
+body[data-theme="light"] .playlist-toolbar input,
+body[data-theme="light"] .settings-select { background: #fff; }
+body[data-theme="light"] .search-shell:focus-within { background: #fff; border-color: rgba(0,0,0,.3); }
+body[data-theme="light"] .primary-btn,
+body[data-theme="light"] .secondary-btn,
+body[data-theme="light"] .transport-btn.primary { color: #161616; background: #e7e7e7; border-color: rgba(0,0,0,.16); }
+body[data-theme="light"] .primary-btn:hover,
+body[data-theme="light"] .secondary-btn:hover,
+body[data-theme="light"] .transport-btn:hover,
+body[data-theme="light"] .mini-btn:hover { background: #dcdcdc; border-color: rgba(0,0,0,.24); }
+body[data-theme="light"] .song-row:hover,
+body[data-theme="light"] .song-row.is-current { background: #ececec; }
+body[data-theme="light"] .song-action:hover,
+body[data-theme="light"] .playlist-delete:hover,
+body[data-theme="light"] .playlist-order:hover { color: #161616; background: #dedede; }
+body[data-theme="light"] .song-art,
+body[data-theme="light"] #nowThumb { background: #e7e7e7; }
+body[data-theme="light"] .home-section h2 { color: #262626; }
+body[data-theme="light"] .transport-btn,
+body[data-theme="light"] .mini-btn { color: #555; }
+body[data-theme="light"] #seekBar,
+body[data-theme="light"] #volumeBar { accent-color: #555; }
+body[data-theme="light"] .detail-panel,
+body[data-theme="light"] .player-bar { background: #ffffff; }
+body[data-theme="light"] .lyrics-area { color: #444; background: #f1f1f1; }
+body[data-theme="light"] .lyric-line { color: #8a8a8a; }
+body[data-theme="light"] .lyric-line.active { color: #111; }
+body[data-theme="light"] .settings-card,
+body[data-theme="light"] .playlist-item { background: #fff; }
+body[data-theme="light"] .playlist-item:hover,
+body[data-theme="light"] .playlist-item.active { background: #ededed; border-color: rgba(0,0,0,.18); }
+body[data-theme="light"] .folder-icon { color: #555; background: #e7e7e7; }
+body[data-theme="light"] .playlist-picker-overlay { background: rgba(0,0,0,.35); }
+body[data-theme="light"] .playlist-picker-window { background: #fff; border-color: rgba(0,0,0,.16); box-shadow: 0 22px 70px rgba(0,0,0,.2); }
+body[data-theme="light"] .playlist-picker-option { color: #161616; background: #f5f5f5; }
+body[data-theme="light"] .playlist-picker-option:hover,
+body[data-theme="light"] .playlist-picker-option.selected { background: #e9e9e9; border-color: rgba(0,0,0,.18); }
+body[data-theme="light"] .playlist-picker-create input { color: #161616; background: #fff; }
+body[data-theme="light"] .playlist-picker-close:hover { color: #161616; background: #e5e5e5; }
+body[data-theme="light"] .secondary-btn.danger { color: #8a4e4e; background: #f4e7e7; }
