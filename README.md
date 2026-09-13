@@ -17,8 +17,6 @@ Seyn was built as a weekend project. To make a complete working prototype within
 - Likes shared consistently between song rows, the player, and the Likes view
 - First-play history: a song is inserted once in the order it was first played; replaying it does not move it
 - User-created playlists with ordering, add/remove actions, and playlist folders
-- Popular-song cold start followed by listening-based recommendation adjustments
-- Dark and light themes
 - Local settings and library data stored in the Electron user-data directory
 
 ## Requirements
