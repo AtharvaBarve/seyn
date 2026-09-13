@@ -2,7 +2,10 @@
   "name": "seyn-desktop",
   "version": "1.0.0",
   "description": "Seyn desktop music player",
-  "author": "Seyn",
+  "author": {
+    "name": "Seyn",
+    "email": "barveatharva57@gmail.com"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -45,9 +48,17 @@
       "icon": "assets/seyn-logo.ico"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "assets/seyn-logo.png",
-      "category": "AudioVideo"
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icons",
+      "category": "AudioVideo",
+      "desktop": {
+        "entry": {
+          "Icon": "/usr/share/icons/hicolor/512x512/apps/seyn-desktop.png"
+        }
+      }
     }
   }
 }
