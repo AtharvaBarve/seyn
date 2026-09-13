@@ -34,7 +34,7 @@ The application can still run with reduced functionality when optional media too
 Replace the placeholder repository URL with the GitHub repository URL you publish:
 
 ```bash
-git clone https://github.com/<YOUR_GITHUB_OWNER>/<YOUR_REPOSITORY>.git
+git clone https://github.com/AtharvaBarve/seyn.git
 cd <YOUR_REPOSITORY>
 npm ci
 
