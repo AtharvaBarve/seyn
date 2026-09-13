@@ -35,7 +35,7 @@ Replace the placeholder repository URL with the GitHub repository URL you publis
 
 ```bash
 git clone https://github.com/AtharvaBarve/seyn.git
-cd <YOUR_REPOSITORY>
+cd seyn
 npm ci
 
 python3 -m venv .venv
