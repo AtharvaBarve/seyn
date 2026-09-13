@@ -1,3 +1,4 @@
+const { app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -6,7 +7,14 @@ const ytdl = require('@distube/ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const { CACHE_DIR_NAME } = require('../../shared/constants');
 
-const CACHE_DIR = path.join(__dirname, '..', '..', '..', CACHE_DIR_NAME);
+const CACHE_DIR = path.join(app.getPath('userData'), CACHE_DIR_NAME);
+
+const PYTHON_RUNTIME_DIR = path.join(
+  app.isPackaged
+    ? process.resourcesPath
+    : path.join(__dirname, '..', '..', '..'),
+  'python-runtime'
+);
 
 function ensureCacheDir() {
   if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -20,12 +28,21 @@ function formatQuery(query, source = 'youtube-music') {
 }
 
 function spawnYtMusicSearch(term) {
-  const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', 'ytmusic_search.py');
-  const venvPython = path.join(__dirname, '..', '..', '..', '.venv', 'bin', 'python');
-  const pythonBinary = fs.existsSync(venvPython) ? venvPython : 'python3';
+  const scriptRoot = app.isPackaged
+    ? path.join(process.resourcesPath, 'scripts')
+    : path.join(__dirname, '..', '..', '..', 'scripts');
+
+  const scriptPath = path.join(scriptRoot, 'ytmusic_search.py');
 
   return new Promise((resolve, reject) => {
-    const child = spawn(pythonBinary, [scriptPath, term], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn('python3', [scriptPath, term], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        PYTHONPATH: PYTHON_RUNTIME_DIR,
+      },
+    });
+
     let stdout = '';
     let stderr = '';
 
@@ -56,12 +73,21 @@ function spawnYtMusicSearch(term) {
 }
 
 function spawnYtMusicLyrics(videoId) {
-  const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', 'ytmusic_lyrics.py');
-  const venvPython = path.join(__dirname, '..', '..', '..', '.venv', 'bin', 'python');
-  const pythonBinary = fs.existsSync(venvPython) ? venvPython : 'python3';
+  const scriptRoot = app.isPackaged
+    ? path.join(process.resourcesPath, 'scripts')
+    : path.join(__dirname, '..', '..', '..', 'scripts');
+
+  const scriptPath = path.join(scriptRoot, 'ytmusic_lyrics.py');
 
   return new Promise((resolve, reject) => {
-    const child = spawn(pythonBinary, [scriptPath, videoId], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn('python3', [scriptPath, videoId], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        PYTHONPATH: PYTHON_RUNTIME_DIR,
+      },
+    });
+
     let stdout = '';
     let stderr = '';
 
@@ -81,6 +107,7 @@ function spawnYtMusicLyrics(videoId) {
 
       try {
         const parsed = JSON.parse(stdout.trim() || '{}');
+
         resolve({
           lyrics: typeof parsed.lyrics === 'string' ? parsed.lyrics : '',
           lines: Array.isArray(parsed.lines) ? parsed.lines : [],

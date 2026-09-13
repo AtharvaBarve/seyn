@@ -24,10 +24,18 @@
       "**/*",
       "!**/.git{,/**/*}",
       "!**/.venv{,/**/*}",
-      "!**/cache{,/**/*}",
-      "!**/dist{,/**/*}",
       "!**/build{,/**/*}",
       "!**/*.log"
+    ],
+    "extraResources": [
+      {
+        "from": "scripts",
+        "to": "scripts"
+      },
+      {
+        "from": "python-runtime",
+        "to": "python-runtime"
+      }
     ],
     "directories": {
       "buildResources": "assets"
@@ -38,7 +46,8 @@
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/seyn-logo.png"
+      "icon": "assets/seyn-logo.png",
+      "category": "AudioVideo"
     }
   }
 }
