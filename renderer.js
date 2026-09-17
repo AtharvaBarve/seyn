@@ -53,6 +53,8 @@ const els = {
   nextBtn: document.getElementById('nextBtn'),
   likeBtn: document.getElementById('likeBtn'),
   muteBtn: document.getElementById('muteBtn'),
+  lyricsToggleBtn: document.getElementById('lyricsToggleBtn'),
+  repeatBtn: document.getElementById('repeatBtn'),
   searchPrefix: document.getElementById('searchPrefix'),
   autoReplaySetting: document.getElementById('autoReplaySetting'),
   syncLyricsSetting: document.getElementById('syncLyricsSetting'),
@@ -77,6 +79,12 @@ function formatDuration(value) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+function updateRangeProgress(input, value, max = input?.max || 1) {
+  if (!input) return;
+  const percent = Math.max(0, Math.min(100, (Number(value) / Number(max || 1)) * 100));
+  input.style.setProperty('--range-progress', `${percent}%`);
 }
 
 function setTheme(theme) {
@@ -127,7 +135,11 @@ function iconSvg(name) {
     playlist: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11M4 11h11M4 16h7M18 14v6m0 0a2 2 0 1 1-2-2 2 2 0 0 1 2 2Zm0 0V7l3-1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.2 2.3 2.5.7 2.2-1.1 1.4 1.4-1.1 2.2.7 2.5L21 12l-2.1 1.1-.7 2.5 1.1 2.2-1.4 1.4-2.2-1.1-2.5.7L12 21l-1.1-2.2-2.5-.7-2.2 1.1-1.4-1.4 1.1-2.2-.7-2.5L3 12l2.2-1.1.7-2.5-1.1-2.2 1.4-1.4 2.2 1.1 2.5-.7L12 3Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
-    playing: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V10M10 19V5M14 16V8M18 14v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    playing: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V10M10 19V5M14 16V8M18 14v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    lyrics: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v13H4zM8 9h8M8 12h5M8 15h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    ,back: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    ,forward: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    ,repeat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15m-3-3 3 3-3 3M20 17H5m3-3-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     ,plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M8 7l1-3h6l1 3m-9 0 .7 13h8.6L17 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     up: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 11 5-5 5 5M12 6v12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -445,6 +457,7 @@ function escapeHtml(value = '') {
 }
 
 function renderLyrics(song) {
+  els.lyricsContent.dataset.activeLyric = '';
   if (!song) {
     els.lyricsContent.textContent = 'No lyrics available';
     return;
@@ -467,13 +480,22 @@ function syncLyricsToPlayback() {
   const current = els.player.currentTime;
   let activeIndex = -1;
   song.lyricsLines.forEach((line, index) => {
-    if (current >= Number(line.start || 0) && current < Number(line.end || Infinity)) activeIndex = index;
+    const start = Number(line.start);
+    if (Number.isFinite(start) && current >= start) activeIndex = index;
   });
+  const activeChanged = els.lyricsContent.dataset.activeLyric !== String(activeIndex);
+  els.lyricsContent.dataset.activeLyric = String(activeIndex);
   els.lyricsContent.querySelectorAll('.lyric-line').forEach((line, index) => {
     line.classList.toggle('active', index === activeIndex);
   });
   const activeLine = els.lyricsContent.querySelector('.lyric-line.active');
-  if (activeLine) activeLine.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (activeLine && activeChanged) {
+    const lineRect = activeLine.getBoundingClientRect();
+    const boxRect = els.lyricsContent.getBoundingClientRect();
+    const lineTop = els.lyricsContent.scrollTop + lineRect.top - boxRect.top;
+    const targetTop = Math.max(0, lineTop - (els.lyricsContent.clientHeight / 2) + (activeLine.offsetHeight / 2));
+    els.lyricsContent.scrollTo({ top: targetTop, behavior: 'smooth' });
+  }
 }
 
 function updateDetail(song) {
@@ -494,12 +516,14 @@ function updateDetail(song) {
 
 function updateNowPlaying(song) {
   if (!song) {
+    document.body.classList.add('no-now-playing');
     els.nowThumb.src = 'https://placehold.co/56x56/1f1f1f/fff?text=♫';
     els.nowTitle.textContent = 'Nothing playing';
     els.nowArtist.textContent = 'Select a song';
     els.likeBtn.innerHTML = iconSvg('heart');
     return;
   }
+  document.body.classList.remove('no-now-playing');
   const key = String(song.id || song.videoId || song.title);
   els.nowThumb.src = song.thumbnail || 'https://placehold.co/56x56/1f1f1f/fff?text=♫';
   els.nowTitle.textContent = song.title || 'Untitled';
@@ -704,6 +728,7 @@ function playSong(song, playbackList = null) {
   els.timeTotal.textContent = '0:00';
   state.playbackList = playbackList || (song.source === 'youtube' ? state.videos : state.songs);
   state.currentSong = song;
+  document.body.classList.remove('no-now-playing');
   const key = songKey(song);
   state.playCounts[key] = (state.playCounts[key] || 0) + 1;
   persistUserData();
@@ -858,8 +883,32 @@ function bindControls() {
   els.searchBtn.addEventListener('click', () => {
     performSearch(els.searchInput.value);
   });
+  els.repeatBtn.innerHTML = iconSvg('repeat');
+  els.repeatBtn.classList.toggle('active', state.autoReplay);
+  els.repeatBtn.setAttribute('aria-pressed', String(state.autoReplay));
+  els.lyricsToggleBtn.addEventListener('click', () => {
+    document.body.classList.toggle('lyrics-collapsed');
+    els.lyricsToggleBtn.classList.toggle('active', !document.body.classList.contains('lyrics-collapsed'));
+  });
 
   document.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      els.searchInput.focus();
+      return;
+    }
+    const activeElement = document.activeElement;
+    const isTyping = activeElement && (
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName)
+      || activeElement.isContentEditable
+    );
+    if (!isTyping && els.player.src && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      event.preventDefault();
+      const offset = event.key === 'ArrowRight' ? 5 : -5;
+      const duration = Number.isFinite(els.player.duration) ? els.player.duration : Infinity;
+      els.player.currentTime = Math.max(0, Math.min(duration, els.player.currentTime + offset));
+      return;
+    }
     if (event.key !== 'Enter') return;
     const activeTag = document.activeElement?.tagName;
     if (activeTag === 'TEXTAREA') return;
@@ -885,16 +934,25 @@ function bindControls() {
   els.nextBtn.addEventListener('click', () => {
     nextTrack();
   });
+  els.repeatBtn.addEventListener('click', () => {
+    state.autoReplay = !state.autoReplay;
+    els.repeatBtn.classList.toggle('active', state.autoReplay);
+    els.repeatBtn.setAttribute('aria-pressed', String(state.autoReplay));
+    els.autoReplaySetting.checked = state.autoReplay;
+    window.electronAPI.setSettings({ autoReplay: state.autoReplay });
+  });
 
   els.seekBar.addEventListener('input', () => {
     if (!els.player.duration) return;
     els.player.currentTime = (Number(els.seekBar.value) / 100) * els.player.duration;
+    updateRangeProgress(els.seekBar, els.seekBar.value, 100);
   });
 
   els.player.addEventListener('timeupdate', () => {
     if (!Number.isFinite(els.player.duration) || els.player.duration <= 0) return;
     const ratio = (els.player.currentTime / els.player.duration) * 100;
     els.seekBar.value = ratio;
+    updateRangeProgress(els.seekBar, ratio, 100);
     els.timeCurrent.textContent = formatDuration(els.player.currentTime);
     els.timeTotal.textContent = formatDuration(els.player.duration);
     syncLyricsToPlayback();
@@ -911,12 +969,16 @@ function bindControls() {
   els.volumeBar.addEventListener('input', () => {
     state.volume = Number(els.volumeBar.value);
     els.player.volume = state.volume;
+    updateRangeProgress(els.volumeBar, state.volume);
+    window.electronAPI.setSettings({ volume: state.volume });
   });
 
   els.settingsVolume.addEventListener('input', () => {
     state.volume = Number(els.settingsVolume.value);
     els.volumeBar.value = state.volume;
     els.player.volume = state.volume;
+    updateRangeProgress(els.volumeBar, state.volume);
+    updateRangeProgress(els.settingsVolume, state.volume);
     window.electronAPI.setSettings({ volume: state.volume });
   });
 
@@ -930,6 +992,8 @@ function bindControls() {
   });
   els.autoReplaySetting.addEventListener('change', () => {
     state.autoReplay = els.autoReplaySetting.checked;
+    els.repeatBtn.classList.toggle('active', state.autoReplay);
+    els.repeatBtn.setAttribute('aria-pressed', String(state.autoReplay));
     window.electronAPI.setSettings({ autoReplay: state.autoReplay });
   });
   els.syncLyricsSetting.addEventListener('change', () => {
@@ -958,6 +1022,8 @@ function bindControls() {
     els.player.volume = nextVolume;
     els.volumeBar.value = nextVolume;
     els.settingsVolume.value = nextVolume;
+    updateRangeProgress(els.volumeBar, nextVolume);
+    updateRangeProgress(els.settingsVolume, nextVolume);
     els.muteBtn.innerHTML = nextVolume === 0 ? iconSvg('mute') : iconSvg('volume');
   });
   els.likeBtn.innerHTML = iconSvg('heart');
@@ -981,6 +1047,8 @@ async function bootstrap() {
     state.volume = Number.isFinite(savedVolume) ? savedVolume : 0.8;
     els.volumeBar.value = state.volume;
     els.settingsVolume.value = state.volume;
+    updateRangeProgress(els.volumeBar, state.volume);
+    updateRangeProgress(els.settingsVolume, state.volume);
     els.player.volume = state.volume;
     state.liked = Array.isArray(settings.liked) ? settings.liked : [];
     state.likedSongs = Array.isArray(settings.likedSongs) ? settings.likedSongs : [];
